@@ -56,8 +56,245 @@ DEFAULT_SG_ID=$(aws ec2 describe-security-groups \
 
 echo "Default Security Group ID: $DEFAULT_SG_ID"
 
+#------------------- Cluster deployment (deploy-eks.sh) -------------------
 
-#------------------- Above in Shell script -------------------
+
+# Step 1: Deploy CloudFormation stack using the retrieved subnet IDs
+aws cloudformation deploy \
+  --template-file eks-cluster.yaml \
+  --stack-name eks-microcks-stack \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides SubnetIds="[$SUBNET_IDS_COMMA]"
+
+# Check if the stack was created successfully
+if [ $? -eq 0 ]; then
+  echo "CloudFormation stack deployed successfully."
+else
+  echo "Error deploying CloudFormation stack."
+  exit 1
+f
+
+#------------------- Cluster deployment (eks-cluster.yaml) -------------------
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create an EKS Cluster with a managed node group in the default VPC
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: microcks-cluster
+
+  KubernetesVersion:
+    Type: String
+    Default: "1.32"
+
+  NodeInstanceType:
+    Type: String
+    Default: t3.medium
+
+  NodeGroupName:
+    Type: String
+    Default: microcks-nodes
+
+  DesiredCapacity:
+    Type: Number
+    Default: 2
+
+  MinSize:
+    Type: Number
+    Default: 1
+
+  MaxSize:
+    Type: Number
+    Default: 3
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Comma-separated list of public subnet IDs (e.g., from default VPC)
+
+Resources:
+  EKSClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref ClusterName
+      Version: !Ref KubernetesVersion
+      RoleArn: !GetAtt EKSClusterRole.Arn
+      ResourcesVpcConfig:
+        SubnetIds: !Ref SubnetIds
+
+  NodeInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+
+  NodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      NodegroupName: !Ref NodeGroupName
+      ClusterName: !Ref ClusterName
+      NodeRole: !GetAtt NodeInstanceRole.Arn
+      Subnets: !Ref SubnetIds
+      ScalingConfig:
+        DesiredSize: !Ref DesiredCapacity
+        MinSize: !Ref MinSize
+        MaxSize: !Ref MaxSize
+      InstanceTypes:
+        - !Ref NodeInstanceType
+      AmiType: AL2_x86_64
+      DiskSize: 20
+      RemoteAccess:
+        Ec2SshKey: your-key-name  # Optional: replace or remove if not needed
+
+Outputs:
+  ClusterName:
+    Value: !Ref ClusterName
+  ClusterEndpoint:
+    Value: !GetAtt EKSCluster.Endpoint
+  ClusterARN:
+    Value: !GetAtt EKSCluster.Arn
+    
+#------------------- Aurora Database Creation (deploy-aurora.sh) -------------------
+
+# Step 1: Deploy CloudFormation stack (using an existing template)
+aws cloudformation deploy \
+  --template-file microcks-aurora-cluster.yaml \
+  --stack-name microcks-db-stack \
+  --parameter-overrides \
+    SubnetIds=$SUBNET_IDS_COMMA \
+    EngineVersion=$LATEST_ENGINE_VERSION \
+    VpcSecurityGroupId=$DEFAULT_SG_ID \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region $REGION
+
+# Step 2: Fetch DB cluster endpoint after deployment
+ENDPOINT=$(aws rds describe-db-clusters --query "DBClusters[0].Endpoint" --output text --region $REGION)
+echo "DB Cluster Endpoint: $ENDPOINT"
+
+#------------------- Aurora Database Cloudformation (microcks-aurora-cluster.yaml) -------------------
+
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SubnetIds:
+    Type: String
+    Description: Comma-separated list of subnet IDs
+  EngineVersion:
+    Type: String
+    Description: Aurora PostgreSQL Engine Version
+  VpcSecurityGroupId:
+    Type: String
+    Description: Security Group ID for the VPC
+
+Resources:
+  MicrocksDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "Subnet group for Microcks Aurora"
+      SubnetIds: !Ref SubnetIds
+
+  MicrocksDBCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      DBClusterIdentifier: microcks-db-cluster
+      Engine: aurora-postgresql
+      EngineVersion: !Ref EngineVersion
+      MasterUsername: microcks
+      MasterUserPassword: microcks123
+      DBSubnetGroupName: !Ref MicrocksDBSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref VpcSecurityGroupId
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: 0.5
+        MaxCapacity: 2
+      BackupRetentionPeriod: 7
+      EnableHttpEndpoint: true
+
+  MicrocksDBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: microcks-db-instance
+      DBClusterIdentifier: !Ref MicrocksDBCluster
+      Engine: aurora-postgresql
+      DBInstanceClass: db.serverless
+      
+#------------------- DocumentDB Database Creation (deploy-documentdb.sh) -------------------
+
+# Step 1: Deploy CloudFormation stack
+aws cloudformation deploy \
+  --region $REGION \
+  --template-file microcks-docdb-cluster.yaml \
+  --stack-name microcks-docdb-stack \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    SubnetIds=$SUBNET_IDS_COMMA \
+    VpcSecurityGroupId=$DEFAULT_SG_ID
+
+# Step 2: Output the cluster endpoint
+ENDPOINT=$(aws docdb describe-db-clusters \
+  --region $REGION \
+  --query "DBClusters[0].Endpoint" \
+  --output text)
+
+echo "DocumentDB Cluster Endpoint: $ENDPOINT"
+
+
+#------------------- DocumentDB Database Cloudformation (microcks-docdb-cluster.yaml) -------------------
+
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SubnetIds:
+    Type: String
+    Description: Comma-separated list of subnet IDs
+  VpcSecurityGroupId:
+    Type: String
+    Description: Default VPC security group ID
+
+Resources:
+  MicrocksDocDBSubnetGroup:
+    Type: AWS::DocDB::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "Subnet group for Microcks DocumentDB"
+      SubnetIds: !Split [ ",", !Ref SubnetIds ]
+
+  MicrocksDocDBCluster:
+    Type: AWS::DocDB::DBCluster
+    Properties:
+      DBClusterIdentifier: microcks-docdb-cluster
+      Engine: docdb
+      MasterUsername: microcks
+      MasterUserPassword: microcks123
+      DBSubnetGroupName: !Ref MicrocksDocDBSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref VpcSecurityGroupId
+
+
+#------------------- Microcks Installment (deploy-databases.sh) -------------------
+
+#------------------- Microcks installment Cloudformation (deploy-databases.yaml) -------------------
+
+#------------------- Raw Commands for Global variables and deployment -------------------
 
 # Set your AWS region
 REGION="ap-south-1"
@@ -112,11 +349,6 @@ aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
 
 kubectl get nodes
 
-#------------------- Above in Shell script -------------------
-
-helm repo add microcks https://microcks.io/helm
-helm repo update
-
 aws rds create-db-subnet-group \
   --db-subnet-group-name microcks-subnet-group \
   --db-subnet-group-description "Subnet group for Microcks Aurora" \
@@ -144,7 +376,7 @@ aws rds create-db-cluster \
   --region ap-south-1
 
 {
-aws rds create-db-cluster   --db-cluster-identifier microcks-db-cluster   --engine aurora-postgresql   --master-username microcks   --master-user-password microcks123   --serverless-v2-scaling-configuration MinCapacity=0.5,MaxCapacity=2   --vpc-security-group-ids sg-0f0e1396259ce7331
+aws rds create-db-cluster   --db-cluster-identifier microcks-db-cluster   --engine aurora-postgresql   --master-username microcks   --master-user-password microcks123   --serverless-v2-scaling-configuration MinCapacity=0.5,MaxCapacity=2   --vpc-security-group-ids sg-04c4a6a77fd165119
 }
 
 aws rds describe-db-clusters --query "DBClusters[0].Endpoint" --output text
@@ -152,6 +384,9 @@ aws rds describe-db-clusters --query "DBClusters[0].Endpoint" --output text
 aws docdb create-db-cluster   --db-cluster-identifier microcks-docdb-cluster   --engine docdb   --master-username microcks   --master-user-password microcks123   --vpc-security-group-ids sg-04c4a6a77fd165119 
 
 aws docdb describe-db-clusters --query "DBClusters[0].Endpoint" --output text
+
+helm repo add microcks https://microcks.io/helm
+helm repo update
 
 helm install microcks microcks/microcks   --namespace microcks   --create-namespace   --set microcks.db.external=true   --set microcks.db.mongo.connectionString="mongodb://microcks:microcks123@microcks-db-cluster.cluster-cza0gcu8ejq5.ap-south-1.rds.amazonaws.com:27017/microcks"   --set microcks.db.postgres.host=microcks-db-cluster.cluster-cza0gcu8ejq5.ap-south-1.rds.amazonaws.com   --set microcks.db.postgres.user=microcks   --set microcks.db.postgres.password=microcks123
 

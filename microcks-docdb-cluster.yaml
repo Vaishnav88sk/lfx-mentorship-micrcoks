@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SubnetIds:
+    Type: String
+    Description: Comma-separated list of subnet IDs
+  VpcSecurityGroupId:
+    Type: String
+    Description: Default VPC security group ID
+
+Resources:
+  MicrocksDocDBSubnetGroup:
+    Type: AWS::DocDB::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "Subnet group for Microcks DocumentDB"
+      SubnetIds: !Split [ ",", !Ref SubnetIds ]
+
+  MicrocksDocDBCluster:
+    Type: AWS::DocDB::DBCluster
+    Properties:
+      DBClusterIdentifier: microcks-docdb-cluster
+      Engine: docdb
+      MasterUsername: microcks
+      MasterUserPassword: microcks123
+      DBSubnetGroupName: !Ref MicrocksDocDBSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref VpcSecurityGroupId
