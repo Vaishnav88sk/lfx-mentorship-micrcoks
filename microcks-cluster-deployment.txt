@@ -1,3 +1,8 @@
+./deploy-microcks-variables.sh
+./deploy-eks.sh
+./deploy-aurora.sh
+./deploy-documentdb.sh
+
 #------------------- Global Variables (deploy-microcks-variables.sh) -------------------
 
 #!/bin/bash

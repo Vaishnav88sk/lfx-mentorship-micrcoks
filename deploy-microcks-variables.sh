@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Set your region
-REGION="ap-south-1"
+export REGION="ap-south-1"
 
 # Step 1: Get the default VPC ID
-DEFAULT_VPC_ID=$(aws ec2 describe-vpcs \
+export DEFAULT_VPC_ID=$(aws ec2 describe-vpcs \
   --region $REGION \
   --filters Name=isDefault,Values=true \
   --query "Vpcs[0].VpcId" \
@@ -19,7 +19,7 @@ fi
 echo "Default VPC ID: $DEFAULT_VPC_ID"
 
 # Step 2: Get public subnet IDs from the default VPC
-SUBNET_IDS=$(aws ec2 describe-subnets \
+export SUBNET_IDS=$(aws ec2 describe-subnets \
   --region $REGION \
   --filters Name=vpc-id,Values=$DEFAULT_VPC_ID Name=default-for-az,Values=true \
   --query "Subnets[*].SubnetId" \
@@ -32,21 +32,30 @@ if [ -z "$SUBNET_IDS" ]; then
 fi
 
 # Convert space-separated subnet IDs to comma-separated
-SUBNET_IDS_COMMA=$(echo $SUBNET_IDS | tr ' ' ',')
+export SUBNET_IDS_COMMA=$(echo $SUBNET_IDS | tr ' ' ',')
 
 echo "Public Subnet IDs: $SUBNET_IDS_COMMA"
 
+# For CloudFormation (JSON array)
+SUBNET_IDS_JSON=$(echo $SUBNET_IDS | jq -R 'split(" ")')
+export SUBNET_IDS_JSON
+
+echo "Subnet IDs (JSON format): $SUBNET_IDS_JSON"
+
+
 # Step 3: Fetch the latest Aurora PostgreSQL engine version
-LATEST_ENGINE_VERSION=$(aws rds describe-db-engine-versions \
-  --region $REGION \
-  --engine aurora-postgresql \
-  --query "DBEngineVersions[0].EngineVersion" \
-  --output text)
+# export LATEST_ENGINE_VERSION=$(aws rds describe-db-engine-versions \
+#   --region $REGION \
+#   --engine aurora-postgresql \
+#   --query "DBEngineVersions[0].EngineVersion" \
+#   --output text)
+
+export LATEST_ENGINE_VERSION=13.18
 
 echo "Latest Aurora PostgreSQL Engine Version: $LATEST_ENGINE_VERSION"
 
 # Step 4: Fetch default VPC security group ID
-DEFAULT_SG_ID=$(aws ec2 describe-security-groups \
+export DEFAULT_SG_ID=$(aws ec2 describe-security-groups \
   --region $REGION \
   --filters Name=vpc-id,Values=$DEFAULT_VPC_ID Name=group-name,Values=default \
   --query "SecurityGroups[0].GroupId" \

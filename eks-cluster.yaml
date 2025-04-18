@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Create an EKS Cluster with a managed node group in the default VPC
+Description: Create an EKS Cluster (Microcks Cluster) with a managed node group in the default VPC
 
 Parameters:
   ClusterName:
@@ -8,7 +8,7 @@ Parameters:
 
   KubernetesVersion:
     Type: String
-    Default: "1.32"
+    Default: '1.32'
 
   NodeInstanceType:
     Type: String
@@ -41,12 +41,12 @@ Resources:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Effect: Allow
-            Principal:
-              Service: eks.amazonaws.com
-            Action: sts:AssumeRole
+        - Effect: Allow
+          Principal:
+            Service: eks.amazonaws.com
+          Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+      - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
 
   EKSCluster:
     Type: AWS::EKS::Cluster
@@ -63,17 +63,18 @@ Resources:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Effect: Allow
-            Principal:
-              Service: ec2.amazonaws.com
-            Action: sts:AssumeRole
+        - Effect: Allow
+          Principal:
+            Service: ec2.amazonaws.com
+          Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+      - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
 
   NodeGroup:
     Type: AWS::EKS::Nodegroup
+    DependsOn: EKSCluster
     Properties:
       NodegroupName: !Ref NodeGroupName
       ClusterName: !Ref ClusterName
@@ -84,11 +85,9 @@ Resources:
         MinSize: !Ref MinSize
         MaxSize: !Ref MaxSize
       InstanceTypes:
-        - !Ref NodeInstanceType
+      - !Ref NodeInstanceType
       AmiType: AL2_x86_64
       DiskSize: 20
-      RemoteAccess:
-        Ec2SshKey: your-key-name  # Optional: replace or remove if not needed
 
 Outputs:
   ClusterName:

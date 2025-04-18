@@ -17,10 +17,19 @@ Resources:
   MicrocksDocDBCluster:
     Type: AWS::DocDB::DBCluster
     Properties:
-      DBClusterIdentifier: microcks-docdb-cluster
-      Engine: docdb
+      DBClusterIdentifier: microcks-docdb-cluster 
       MasterUsername: microcks
       MasterUserPassword: microcks123
       DBSubnetGroupName: !Ref MicrocksDocDBSubnetGroup
       VpcSecurityGroupIds:
         - !Ref VpcSecurityGroupId
+
+  MicrocksDocDBInstance:
+    Type: AWS::DocDB::DBInstance
+    DependsOn: 
+    - MicrocksDocDBCluster
+    - MicrocksDocDBSubnetGroup
+    Properties:
+      DBInstanceIdentifier: microcks-docdb-instance
+      DBClusterIdentifier: !Ref MicrocksDocDBCluster
+      DBInstanceClass: db.t3.medium
