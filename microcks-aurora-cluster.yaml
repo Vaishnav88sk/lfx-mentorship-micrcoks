@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SubnetIds:
+    Type: String
+    Description: Comma-separated list of subnet IDs
+  EngineVersion:
+    Type: String
+    Description: Aurora PostgreSQL Engine Version
+  VpcSecurityGroupId:
+    Type: String
+    Description: Security Group ID for the VPC
+
+Resources:
+  MicrocksDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "Subnet group for Microcks Aurora"
+      SubnetIds: !Ref SubnetIds
+
+  MicrocksDBCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      DBClusterIdentifier: microcks-db-cluster
+      Engine: aurora-postgresql
+      EngineVersion: !Ref EngineVersion
+      MasterUsername: microcks
+      MasterUserPassword: microcks123
+      DBSubnetGroupName: !Ref MicrocksDBSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref VpcSecurityGroupId
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: 0.5
+        MaxCapacity: 2
+      BackupRetentionPeriod: 7
+      EnableHttpEndpoint: true
+
+  MicrocksDBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: microcks-db-instance
+      DBClusterIdentifier: !Ref MicrocksDBCluster
+      Engine: aurora-postgresql
+      DBInstanceClass: db.serverless
