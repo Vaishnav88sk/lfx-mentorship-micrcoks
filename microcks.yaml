@@ -1,0 +1,157 @@
+# microcks:
+#   url: "microcks.autoip.nip.io"
+#   resources: {}
+
+# service:
+#   type: LoadBalancer
+#   port: 8080
+#   annotations:
+#     service.beta.kubernetes.io/aws-load-balancer-type: "external"
+
+# grpc:
+#   enabled: true
+#   service:
+#     type: LoadBalancer
+#     port: 9090
+#     annotations:
+#       service.beta.kubernetes.io/aws-load-balancer-type: "external"
+
+
+# keycloak:
+#   enabled: false  
+#   postgresql:
+#     enabled: false 
+
+# identity:
+#   provider: keycloak
+#   keycloak:
+#     url: "http://keycloak.3.7.80.166.nip.io/"
+#     realm: "microcks"
+#     clientId: "microcks-app"
+#     clientSecret: "microcks123"
+
+# postman:
+#   enabled: true
+#   resources: {}
+
+# env:
+#   - name: MICROCKS_APP_STORAGE_TYPE
+#     value: "mongo"
+#   - name: MICROCKS_MONGO_URI
+#     value: "mongodb://microcks:microcks123@microcks-db-cluster.cluster-cza0gcu8ejq5.ap-south-1.rds.amazonaws.com:27017/microcks?ssl=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false"
+
+
+# appName: microcks
+
+# mongodb:
+#   install: false
+#   uri: "microcks-docdb-cluster.cluster-cza0gcu8ejq5.ap-south-1.docdb.amazonaws.com:27017"
+#   uriParameters: "?replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false&authMechanism=SCRAM-SHA-1&connectTimeoutMS=30000&socketTimeoutMS=30000"  # SSL disabled
+#   database: microcks
+#   secretRef:
+#     secret: microcks-mongodb-credentials
+#     usernameKey: microcks
+#     passwordKey: microcks123
+
+# microcks:
+#   url: "microcks.local"  # Temporary placeholder
+#   resources:
+#     requests:
+#       memory: "512Mi"
+#       cpu: "500m"
+#     limits:
+#       memory: "1Gi"
+#       cpu: "1"
+#   customSecretRef:
+#     secret: microcks-mongodb-ca  # This is not needed anymore for disabling SSL
+
+#   extraEnv: []  # Remove JAVA_TOOL_OPTIONS or any extra SSL settings
+
+#   extraVolumeMounts: []  # Remove if SSL is disabled
+
+#   extraVolumes: []  # Remove if SSL is disabled
+
+# service:
+#   type: LoadBalancer
+#   port: 8080
+#   annotations:
+#     service.beta.kubernetes.io/aws-load-balancer-type: "external"
+
+# grpc:
+#   enabled: true
+#   service:
+#     type: LoadBalancer
+#     port: 9090
+#     annotations:
+#       service.beta.kubernetes.io/aws-load-balancer-type: "external"
+
+# keycloak:
+#   enabled: false
+#   postgresql:
+#     enabled: false
+
+# identity:
+#   provider: keycloak
+#   keycloak:
+#     url: "https://keycloak.3.7.80.166.nip.io/"  # Use current Keycloak URL
+#     realm: "microcks"
+#     clientId: "microcks-app"
+#     clientSecret: "microcks123"
+
+# postman:
+#   enabled: true
+#   resources:
+#     requests:
+#       memory: "256Mi"
+#       cpu: "250m"
+#     limits:
+#       memory: "512Mi"
+#       cpu: "500m"
+
+
+appName: microcks
+ingresses: true
+
+microcks:
+  url: microcks.local
+  ingressClassName: nginx
+  ingressAnnotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+   
+  grpcEnableTLS: true
+  grpcIngressClassName: nginx
+  grpcIngressAnnotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    
+  env:
+    - name: SPRING_DATA_MONGODB_URI
+      value: "mongodb://microcks:microcks123@microcks-docdb-instance.cza0gcu8ejq5.ap-south-1.docdb.amazonaws.com:27017/?tls=true&tlsCAFile=global-bundle.pem&retryWrites=false"
+    - name: CORS_REST_ALLOWED_ORIGINS
+      value: "https://keycloak.43.204.192.72.nip.io"
+    - name: CORS_REST_ALLOW_CREDENTIALS
+      value: "true"    
+
+keycloak:
+  enabled: true
+  install: false
+  url: keycloak.43.204.192.72.nip.io
+  privateUrl: https://keycloak.43.204.192.72.nip.io
+  realm: microcks
+  client:
+    id: microcks-app-js
+    secret: microcks123
+
+mongodb:
+  install: false  
+  database: microcks
+  secretRef:
+    secret: microcks-mongodb-connection
+    usernameKey: username
+    passwordKey: password
+    
+ingress:
+  enabled: true
+  tls: true

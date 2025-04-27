@@ -1,0 +1,7 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  CreateKeycloakDB:
+    Type: Custom::CreateKeycloakDB
+    Properties:
+      ServiceToken: arn:aws:lambda:ap-south-1:123456789012:function:YourLambdaFunctionName
+

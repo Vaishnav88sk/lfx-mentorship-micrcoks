@@ -1,0 +1,61 @@
+Script started on 2025-04-19 20:11:57+05:30 [TERM="xterm-256color" TTY="/dev/pts/1" COLUMNS="80" LINES="24"]
+[?2004h]0;vaishnavsk@vaishnav88: ~/microcks-lfx[01;32mvaishnavsk@vaishnav88[00m:[01;34m~/microcks-lfx[00m$ [7m./deploy-microcks-variables.sh[27m./deploy-microcks-variables.sh
+[?2004lDefault VPC ID: vpc-0e3e5c04d433315da
+Public Subnet IDs: subnet-01df6880678c3999a,subnet-0fdbc0c54c4c75cac,subnet-0a0bc7205aacc95d0
+Subnet IDs (JSON format): [
+  "subnet-01df6880678c3999a",
+  "subnet-0fdbc0c54c4c75cac",
+  "subnet-0a0bc7205aacc95d0"
+]
+Latest Aurora PostgreSQL Engine Version: 13.18
+Default Security Group ID: sg-04c4a6a77fd165119
+[?2004h]0;vaishnavsk@vaishnav88: ~/microcks-lfx[01;32mvaishnavsk@vaishnav88[00m:[01;34m~/microcks-lfx[00m$ [7m./deploy-eks.sh[27m./deploy-eks.sh
+[?2004lDefault VPC ID: vpc-0e3e5c04d433315da
+Public Subnet IDs: subnet-01df6880678c3999a,subnet-0fdbc0c54c4c75cac,subnet-0a0bc7205aacc95d0
+Subnet IDs (JSON format): [
+  "subnet-01df6880678c3999a",
+  "subnet-0fdbc0c54c4c75cac",
+  "subnet-0a0bc7205aacc95d0"
+]
+Latest Aurora PostgreSQL Engine Version: 13.18
+Default Security Group ID: sg-04c4a6a77fd165119
+Deploying with SubnetIds: subnet-01df6880678c3999a,subnet-0fdbc0c54c4c75cac,subnet-0a0bc7205aacc95d0
+
+Waiting for changeset to be created..
+Waiting for stack create/update to complete
+Successfully created/updated stack - eks-microcks-stack
+CloudFormation stack deployed successfully.
+[?2004h]0;vaishnavsk@vaishnav88: ~/microcks-lfx[01;32mvaishnavsk@vaishnav88[00m:[01;34m~/microcks-lfx[00m$ [7m./deploy-eks.sh[27m[1P./deploy-eks.s[K[K[K[K[K[K[K[K[K[K[K[K[K[K[7m./deploy-aurora.sh[27m./deploy-aurora.sh
+[?2004lDefault VPC ID: vpc-0e3e5c04d433315da
+Public Subnet IDs: subnet-01df6880678c3999a,subnet-0fdbc0c54c4c75cac,subnet-0a0bc7205aacc95d0
+Subnet IDs (JSON format): [
+  "subnet-01df6880678c3999a",
+  "subnet-0fdbc0c54c4c75cac",
+  "subnet-0a0bc7205aacc95d0"
+]
+Latest Aurora PostgreSQL Engine Version: 13.18
+Default Security Group ID: sg-04c4a6a77fd165119
+
+Waiting for changeset to be created..
+Waiting for stack create/update to complete
+Successfully created/updated stack - microcks-db-stack
+Aurora DB Cluster Endpoint: microcks-db-cluster.cluster-cza0gcu8ejq5.ap-south-1.rds.amazonaws.com
+[?2004h]0;vaishnavsk@vaishnav88: ~/microcks-lfx[01;32mvaishnavsk@vaishnav88[00m:[01;34m~/microcks-lfx[00m$ [7m./deploy-aurora.sh[27m[1P./deploy-aurora.s[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[7m./deploy-documentdb.sh[27m./deploy-documentdb.sh
+[?2004lDefault VPC ID: vpc-0e3e5c04d433315da
+Public Subnet IDs: subnet-01df6880678c3999a,subnet-0fdbc0c54c4c75cac,subnet-0a0bc7205aacc95d0
+Subnet IDs (JSON format): [
+  "subnet-01df6880678c3999a",
+  "subnet-0fdbc0c54c4c75cac",
+  "subnet-0a0bc7205aacc95d0"
+]
+Latest Aurora PostgreSQL Engine Version: 13.18
+Default Security Group ID: sg-04c4a6a77fd165119
+
+Waiting for changeset to be created..
+Waiting for stack create/update to complete
+Successfully created/updated stack - microcks-docdb-stack
+DocumentDB Cluster Endpoint: microcks-docdb-cluster.cluster-cza0gcu8ejq5.ap-south-1.docdb.amazonaws.com
+[?2004h]0;vaishnavsk@vaishnav88: ~/microcks-lfx[01;32mvaishnavsk@vaishnav88[00m:[01;34m~/microcks-lfx[00m$ exit
+[?2004lexit
+
+Script done on 2025-04-19 21:51:08+05:30 [COMMAND_EXIT_CODE="0"]

@@ -1,12 +1,41 @@
-postgresql:
-  enabled: false
+# postgresql:
+#   enabled: false
 
-externalDatabase:
-  host: microcks-db-cluster.cluster-cza0gcu8ejq5.ap-south-1.rds.amazonaws.com
-  user: microcks
-  password: microcks123
-  database: keycloak_db
-  port: 5432
+# externalDatabase:
+#   host: microcks-db-cluster.cluster-cza0gcu8ejq5.ap-south-1.rds.amazonaws.com
+#   user: microcks
+#   password: microcks123
+#   database: keycloak_db
+#   port: 5432
+
+
+# auth:
+#   adminUser: admin
+#   adminPassword: "microcks123"
+
+# postgresql:
+#   enabled: false
+
+# externalDatabase:
+#   host: "microcks-db-cluster.cluster-cza0gcu8ejq5.ap-south-1.rds.amazonaws.com"
+#   port: 5432
+#   database: "keycloak_db"
+#   user: "microcks"
+#   password: "microcks123"
+#   scheme: "postgresql"
+
+# service:
+#   type: ClusterIP
+#   ports:
+#     http: 80
+
+# resources:
+#   requests:
+#     cpu: "500m"
+#     memory: "512Mi"
+#   limits:
+#     cpu: "1"
+#     memory: "1Gi"
 
 
 auth:
@@ -36,3 +65,12 @@ resources:
   limits:
     cpu: "1"
     memory: "1Gi"
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hostname: keycloak.43.204.192.72.nip.io  # Replace <YOUR-DOMAIN> with your custom domain
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls: true

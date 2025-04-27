@@ -1,4 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Description: Create a DocumentDB Cluster (microcks-docdb-cluster) with a DB Instance (microcks-docdb-instance) in the default VPC
 Parameters:
   SubnetIds:
     Type: String

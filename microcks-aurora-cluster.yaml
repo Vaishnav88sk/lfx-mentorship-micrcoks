@@ -1,4 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Description: Create an Aurora Serverless PostgreSQL Cluster (microcks-db-cluster) with a DB Instance (microcks-db-instance)
 Parameters:
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
@@ -23,17 +24,18 @@ Resources:
       DBClusterIdentifier: microcks-db-cluster
       Engine: aurora-postgresql
       EngineVersion: !Ref EngineVersion
+      Port: 5432
       MasterUsername: microcks
       MasterUserPassword: microcks123
       DBSubnetGroupName: !Ref MicrocksDBSubnetGroup
       VpcSecurityGroupIds:
-        - !Ref VpcSecurityGroupId
+      - !Ref VpcSecurityGroupId
       ServerlessV2ScalingConfiguration:
         MinCapacity: 0.5
         MaxCapacity: 2
       BackupRetentionPeriod: 7
       EnableHttpEndpoint: true
-
+      # PubliclyAccessible: true
   MicrocksDBInstance:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -41,3 +43,131 @@ Resources:
       DBClusterIdentifier: !Ref MicrocksDBCluster
       Engine: aurora-postgresql
       DBInstanceClass: db.serverless
+
+
+# AWSTemplateFormatVersion: '2010-09-09'
+# Description: Create an Aurora Serverless PostgreSQL Cluster (microcks-db-cluster) with a DB Instance (microcks-db-instance) and a Lambda to create a keycloak_db
+
+# Parameters:
+#   SubnetIds:
+#     Type: List<AWS::EC2::Subnet::Id>
+#     Description: Comma-separated list of subnet IDs
+#   EngineVersion:
+#     Type: String
+#     Description: Aurora PostgreSQL Engine Version
+#   VpcSecurityGroupId:
+#     Type: String
+#     Description: Security Group ID for the VPC
+
+# Resources:
+
+#   MicrocksDBSubnetGroup:
+#     Type: AWS::RDS::DBSubnetGroup
+#     Properties:
+#       DBSubnetGroupDescription: "Subnet group for Microcks Aurora"
+#       SubnetIds: !Ref SubnetIds
+
+#   MicrocksDBCluster:
+#     Type: AWS::RDS::DBCluster
+#     Properties:
+#       DBClusterIdentifier: microcks-db-cluster
+#       Engine: aurora-postgresql
+#       EngineVersion: !Ref EngineVersion
+#       Port: 5432
+#       MasterUsername: microcks
+#       MasterUserPassword: microcks123
+#       DBSubnetGroupName: !Ref MicrocksDBSubnetGroup
+#       VpcSecurityGroupIds:
+#         - !Ref VpcSecurityGroupId
+#       ServerlessV2ScalingConfiguration:
+#         MinCapacity: 0.5
+#         MaxCapacity: 2
+#       BackupRetentionPeriod: 7
+#       EnableHttpEndpoint: true
+#       # PubliclyAccessible: true
+
+#   MicrocksDBInstance:
+#     Type: AWS::RDS::DBInstance
+#     Properties:
+#       DBInstanceIdentifier: microcks-db-instance
+#       DBClusterIdentifier: !Ref MicrocksDBCluster
+#       Engine: aurora-postgresql
+#       DBInstanceClass: db.serverless
+
+#   LambdaExecutionRole:
+#     Type: AWS::IAM::Role
+#     Properties:
+#       AssumeRolePolicyDocument:
+#         Version: '2012-10-17'
+#         Statement:
+#           - Effect: Allow
+#             Principal:
+#               Service:
+#                 - lambda.amazonaws.com
+#             Action:
+#               - sts:AssumeRole
+#       Path: /
+#       Policies:
+#         - PolicyName: LambdaRDSAccessPolicy
+#           PolicyDocument:
+#             Version: '2012-10-17'
+#             Statement:
+#               - Effect: Allow
+#                 Action:
+#                   - rds:*
+#                   - ec2:Describe*
+#                 Resource: "*"
+#               - Effect: Allow
+#                 Action:
+#                   - logs:CreateLogGroup
+#                   - logs:CreateLogStream
+#                   - logs:PutLogEvents
+#                 Resource: "*"
+
+#   CreateDBLambdaFunction:
+#     Type: AWS::Lambda::Function
+#     Properties:
+#       Handler: index.handler
+#       Role: !GetAtt LambdaExecutionRole.Arn
+#       FunctionName: CreateKeycloakDBFunction
+#       Runtime: nodejs18.x
+#       Timeout: 30
+#       Code:
+#         ZipFile: |
+#           const { Client } = require('pg');
+#           exports.handler = async (event) => {
+#             const client = new Client({
+#               host: event.DBClusterEndpoint,
+#               port: 5432,
+#               user: 'microcks',
+#               password: 'microcks123',
+#               database: 'postgres',
+#             });
+#             try {
+#               await client.connect();
+#               const createDatabaseQuery = `CREATE DATABASE ${event.DBName};`;
+#               await client.query(createDatabaseQuery);
+#               console.log('Database created successfully!');
+#             } catch (err) {
+#               if (err.code === '42P04') {
+#                 console.log(`Database ${event.DBName} already exists.`);
+#               } else {
+#                 console.error('Error creating database:', err);
+#                 throw new Error('Database creation failed');
+#               }
+#             } finally {
+#               await client.end();
+#             }
+#           };
+
+#   CreateKeycloakDB:
+#     Type: Custom::CreateKeycloakDB
+#     Properties:
+#       ServiceToken: !GetAtt CreateDBLambdaFunction.Arn
+#       DBClusterIdentifier: !Ref MicrocksDBCluster
+#       DBClusterEndpoint: !GetAtt MicrocksDBCluster.Endpoint
+#       DBName: keycloak_db
+#     DependsOn:
+#       - MicrocksDBCluster
+#       - CreateDBLambdaFunction
+#       - LambdaExecutionRole

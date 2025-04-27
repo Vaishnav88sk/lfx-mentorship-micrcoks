@@ -3,6 +3,9 @@
 ./deploy-aurora.sh
 ./deploy-documentdb.sh
 
+or 
+./microcks-cloudformation.sh
+
 #------------------- Global Variables (deploy-microcks-variables.sh) -------------------
 
 #!/bin/bash
@@ -348,7 +351,7 @@ eksctl utils associate-iam-oidc-provider --region=$REGION --cluster=$CLUSTER_NAM
 
 eksctl update addon --name vpc-cni --cluster $CLUSTER_NAME --region $REGION
 
-eksctl get cluster --name $CLUSTER_NAME
+Verify EKS Cluster Status
 
 aws eks update-kubeconfig --name $CLUSTER_NAME --region $REGION
 
@@ -407,4 +410,13 @@ kubectl get deployment -n kube-system aws-load-balancer-controller
 
 
 
+
+
+
+
+
+-- For Keycloak
+
+
+export INGRESS_IP=$(dig +short $(kubectl -n ingress-nginx get svc ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}') | head -n 1)
 
